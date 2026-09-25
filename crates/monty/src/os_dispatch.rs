@@ -570,6 +570,7 @@ fn finish_str_data_args(
     newline: Value,
     vm: &mut VM<'_>,
 ) -> RunResult<PathStringDataArgs> {
+    defer_drop!(data, vm);
     defer_drop!(encoding, vm);
     defer_drop!(errors, vm);
     defer_drop!(newline, vm);
@@ -577,9 +578,8 @@ fn finish_str_data_args(
     validate_ignored_open_kwarg("errors", errors, vm)?;
     validate_ignored_open_kwarg("newline", newline, vm)?;
 
-    let data_str = value_to_owned_string(&data, vm.heap, vm.interns);
+    let data_str = value_to_owned_string(data, vm.heap, vm.interns);
     let py_type = data.py_type_name_heap(vm.heap, vm.interns);
-    data.drop_with(vm.heap);
 
     match data_str {
         Some(data) => Ok(PathStringDataArgs { path, data }),
