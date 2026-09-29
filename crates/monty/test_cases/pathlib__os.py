@@ -129,29 +129,55 @@ assert Path('/virtual/new_file.txt').read_text() == 'created by write_text'
 Path('/virtual/file.txt').write_text('overwritten')
 assert Path('/virtual/file.txt').read_text() == 'overwritten'
 
-# === write_text()/append_text() with encoding/errors/newline ===
+# === write_text() with encoding/errors/newline ===
 Path('/virtual/new_file.txt').write_text('written with encoding', encoding='utf-8')
 assert Path('/virtual/new_file.txt').read_text() == 'written with encoding'
 Path('/virtual/new_file.txt').write_text('written with all defaults', 'utf-8', None, None)
 assert Path('/virtual/new_file.txt').read_text() == 'written with all defaults'
 
-Path('/virtual/append_file.txt').write_text('base')
-Path('/virtual/append_file.txt').append_text(' appended', encoding='utf-8')
-assert Path('/virtual/append_file.txt').read_text() == 'base appended'
-Path('/virtual/append_file.txt').append_text(' more', 'utf-8', None, None)
-assert Path('/virtual/append_file.txt').read_text() == 'base appended more'
-
-# A wrong type for encoding/errors/newline raises the same TypeError CPython's
-# open() raises, for both write_text() and append_text().
-for _method in ('write_text', 'append_text'):
-    for _kwarg in ('encoding', 'errors', 'newline'):
-        try:
-            getattr(Path('/virtual/bad_kwargs.txt'), _method)('data', **{_kwarg: 123})
-            assert False, f'expected {_method}({_kwarg}=123) to raise TypeError'
-        except TypeError as exc:
-            assert str(exc) == f"open() argument '{_kwarg}' must be str or None, not int"
-
 if is_monty:
+    # append_text()/append_bytes() have no CPython equivalent (Monty-only
+    # extension, see limitations/pathlib.md), so this whole section only
+    # runs under Monty.
+    Path('/virtual/append_file.txt').write_text('base')
+    Path('/virtual/append_file.txt').append_text(' appended', encoding='utf-8')
+    assert Path('/virtual/append_file.txt').read_text() == 'base appended'
+    Path('/virtual/append_file.txt').append_text(' more', 'utf-8', None, None)
+    assert Path('/virtual/append_file.txt').read_text() == 'base appended more'
+
+    # A wrong type for encoding/errors/newline raises the same TypeError as
+    # CPython's open(), for both write_text() and append_text().
+    try:
+        Path('/virtual/bad_kwargs.txt').write_text('data', encoding=123)
+        assert False, 'expected write_text(encoding=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'encoding' must be str or None, not int"
+    try:
+        Path('/virtual/bad_kwargs.txt').write_text('data', errors=123)
+        assert False, 'expected write_text(errors=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'errors' must be str or None, not int"
+    try:
+        Path('/virtual/bad_kwargs.txt').write_text('data', newline=123)
+        assert False, 'expected write_text(newline=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'newline' must be str or None, not int"
+    try:
+        Path('/virtual/bad_kwargs.txt').append_text('data', encoding=123)
+        assert False, 'expected append_text(encoding=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'encoding' must be str or None, not int"
+    try:
+        Path('/virtual/bad_kwargs.txt').append_text('data', errors=123)
+        assert False, 'expected append_text(errors=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'errors' must be str or None, not int"
+    try:
+        Path('/virtual/bad_kwargs.txt').append_text('data', newline=123)
+        assert False, 'expected append_text(newline=123) to raise TypeError'
+    except TypeError as exc:
+        assert str(exc) == "open() argument 'newline' must be str or None, not int"
+
     # A non-default (but otherwise valid) encoding/errors/newline value is not
     # yet supported by Monty, even though CPython accepts it.
     try:
@@ -169,6 +195,11 @@ if is_monty:
         assert False, 'expected non-default newline to be rejected'
     except TypeError as exc:
         assert str(exc) == "'newline' argument is not yet supported"
+    try:
+        Path('/virtual/append_file.txt').append_text('data', encoding='latin-1')
+        assert False, 'expected latin-1 encoding to be rejected'
+    except TypeError as exc:
+        assert str(exc) == "'encoding' argument is not yet supported"
     try:
         Path('/virtual/append_file.txt').append_text('data', errors='ignore')
         assert False, 'expected non-default errors to be rejected'
